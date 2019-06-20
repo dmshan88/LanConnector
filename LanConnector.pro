@@ -23,7 +23,8 @@ SOURCES += main.cpp \
     protocol/realtimedata.cpp \
     routine.cpp \
     settings.cpp \
-    protocol/udp_protocol.cpp
+    protocol/udp_protocol.cpp \
+    modbusrtu_server.cpp
 
 HEADERS += \
     tcp_client.h \
@@ -32,4 +33,7 @@ HEADERS += \
     protocol/realtimedata.h \
     routine.h \
     settings.h \
-    protocol/udp_protocol.h
+    protocol/udp_protocol.h \
+    modbusrtu_server.h
+LIBS += -LC:/dev/qt_code/LanConnector/modbus -llibmodbus-5
+INCLUDEPATH += modbus

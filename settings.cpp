@@ -153,6 +153,8 @@ Settings::Settings()
         setGate("192.168.1.1");
         setMask("255.255.255.0");
         setDeviceName("MY-DEVICE");
+        setCOM("COM3");
+        setBaud(4800);
         m_setting->setValue("Device/version", "79 1f");
     }
 

@@ -7,6 +7,7 @@
 #include <QList>
 #include "protocol/realtimedata.h"
 #include "tcp_client.h"
+#include "modbusrtu_server.h"
 class Routine : public QObject
 {
     Q_OBJECT
@@ -15,6 +16,7 @@ public:
     void start(void) {m_flag = true;}
     void stop(void) {m_flag = false;}
     void setServerClients(void);
+    void setNodes(void);
 signals:
 
 public slots:
@@ -32,6 +34,7 @@ private:
     //RealTimeData m_realtime_data;
     int m_deviceid;
     bool m_flag;
+    ModbusRtuServer *m_modbus;
 
 };
 

@@ -10,11 +10,11 @@ public:
     RealTimeData(void) : LoginData(REALTIME_DATA){m_nodelist.clear();}
     struct NodeData
     {
-      char nodeId;
-      char temH;
-      char temL;
-      char humH;
-      char humL;
+      quint8 nodeId;
+      quint8 temH;
+      quint8 temL;
+      quint8 humH;
+      quint8 humL;
     };
     void addNode(NodeData node){m_nodelist.append(node);}
 
@@ -22,7 +22,7 @@ protected:
     virtual QByteArray setRealData();
 
 private:
-    QByteArray nodeToData(NodeData data);
+    QByteArray nodeToData(NodeData node);
     QList<NodeData> m_nodelist;
 };
 

@@ -8,6 +8,10 @@ public:
     static Settings* Instance();
     int getDeviceId(void){return m_setting->value("Device/id").toInt();}
     void setDeviceId(int id){m_setting->setValue("Device/id", id);}
+    void setCOM(QString com) {m_setting->setValue("Device/com", com);}
+    QString getCOM(void) {return m_setting->value("Device/com").toString();}
+    int getBaud(void) {return m_setting->value("Device/baud").toInt();}
+    bool setBaud(int baud){m_setting->setValue("Device/baud", baud);}
     QString getMAC(void);
     void setMAC(QString mac);
     enum IP_TYPE{STATIC, DYNAMIC};

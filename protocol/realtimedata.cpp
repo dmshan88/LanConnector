@@ -1,7 +1,7 @@
 #include "realtimedata.h"
 #include <QDebug>
-
-
+#include <QDataStream>
+#include <QByteArray>
 
 QByteArray RealTimeData::setRealData()
 {
@@ -9,16 +9,20 @@ QByteArray RealTimeData::setRealData()
     foreach (NodeData node, m_nodelist) {
         data.append(nodeToData(node));
     }
-    //qDebug() << "rr" << m_nodelist.length() << data;
     data.append(QByteArray::fromHex("37 34 33 33 33 33 33 33 33 33 33 33 33 33 33 33"));
     data.append(getIdData());
     qDebug() << data.toHex();
     return data;
 }
 
-QByteArray RealTimeData::nodeToData(RealTimeData::NodeData data)
+QByteArray RealTimeData::nodeToData(RealTimeData::NodeData node)
 {
-    //QByteArray data;
-    //data.fromHex("34 4f 34 0a 34");
-    return QByteArray::fromHex("34 4f 34 0a 34");
+    QByteArray data;
+    QDataStream stream(&data, QIODevice::ReadWrite);
+    stream << (quint8)(node.nodeId + 0x33)
+           << (quint8)(node.temL + 0x33)
+           << (quint8)(node.temH + 0x33)
+           << (quint8)(node.humL + 0x33)
+           << (quint8)(node.humH + 0x33);
+    return data;
 }

@@ -14,11 +14,14 @@ Routine *Routine::Instance()
 
 
 Routine::Routine(QObject *parent) :
-    QObject(parent)
+    QObject(parent), m_modbus(ModbusRtuServer::Instance())
 {
-    m_deviceid = Settings::Instance()->getDeviceId();
+    Settings *setting = Settings::Instance();
+    m_deviceid = setting->getDeviceId();
     m_client_map.clear();
     setServerClients();
+    m_modbus->setRTU(setting->getCOM(), setting->getBaud());
+    setNodes();
     QTimer *timer = new QTimer(this);
     timer->setInterval(5000);
     connect(timer, SIGNAL(timeout()), this, SLOT(SendRealTimeData()));
@@ -41,6 +44,15 @@ void Routine::setServerClients()
     }
 }
 
+void Routine::setNodes()
+{
+    Settings *setting = Settings::Instance();
+    m_modbus->setNodeCount(setting->getNodeCount());
+    for (int i = 0; i< setting->getNodeCount() ; i++) {
+        m_modbus->addNodeAddress(i, setting->getNodeAddress(i + 1));
+    }
+}
+
 void Routine::connectToHost(int index)
 {
     QString host;
@@ -57,11 +69,20 @@ void Routine::connectToHost(int index)
 RealTimeData Routine::getRealTimeData()
 {
     //to do
-    RealTimeData data;
-    data.setId(m_deviceid);
-    RealTimeData::NodeData node;
-    data.addNode(node);
-    return data;
+    Settings *setting = Settings::Instance();
+    RealTimeData realtime_data;
+    realtime_data.setId(m_deviceid);
+    for (int i = 0; i < setting->getNodeCount(); i++) {
+        ModbusRtuServer::Modbus_Node modbus_node = m_modbus->getNode(i);
+        RealTimeData::NodeData node;
+        node.nodeId = i + 1;
+        node.humH = (modbus_node.value1 & 0xff00) >> 8;
+        node.humL = (modbus_node.value1 & 0x00ff) >> 0;
+        node.temH = (modbus_node.value2 & 0xff00) >> 8;
+        node.temL = (modbus_node.value2 & 0x00ff) >> 0;
+        realtime_data.addNode(node);
+    }
+    return realtime_data;
 }
 
 void Routine::SendRealTimeData()
