@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QTimer>
 
+
 ModbusRtuServer *ModbusRtuServer::m_instance = 0;
 const int ModbusRtuServer::NODE_COUNT = 8;
 ModbusRtuServer *ModbusRtuServer::Instance()
@@ -16,8 +17,6 @@ ModbusRtuServer *ModbusRtuServer::Instance()
 ModbusRtuServer::ModbusRtuServer(QObject *parent) :
     QObject(parent)
 {
-    //setRTU();
-
     setNodeCount(NODE_COUNT);
     QTimer *timer = new QTimer(this);
     timer->setInterval(1000);
@@ -52,10 +51,12 @@ void ModbusRtuServer::setNodeValue(int index, ModbusRtuServer::Modbus_Node node)
 
 void ModbusRtuServer::setNodeCount(int count)
 {
+
     m_nodelist.resize(count);
     for (int i = 0; i < m_nodelist.count(); i++) {
         addNodeAddress(i, 0);
     }
+
 }
 
 ModbusRtuServer::Modbus_Node ModbusRtuServer::getNode(int index)
@@ -76,7 +77,9 @@ void ModbusRtuServer::timeout()
     static int node_index = 0;
     Modbus_Node node;
     int start = node_index;
-
+    if (!getNodeCount()) {
+        return;
+    }
     do {
         node =  m_nodelist.at(node_index);
         node_index++;
@@ -88,7 +91,7 @@ void ModbusRtuServer::timeout()
 
     } while(node.address == 0);
 
-
+//    qDebug() << "timeout getvalue" << node.address << node.value1 << node.value2;
     node.is_timeout = !getValue(node.address, node.value1, node.value2);
     setNodeValue(start,node);
 }

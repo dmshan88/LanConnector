@@ -33,10 +33,10 @@ public:
     void getServer(int index, QString &host, quint16 &port);
     bool setServer(int index, QString host, quint16 port);
 
-    int getNodeCount(void) {return m_setting->value("Node/count").toInt();}
-    bool setNodeCount(int count);
-    int getNodeAddress(int index);
-    bool setNodeAddress(int index, int address);
+    quint8 getNodeCount(void) {return m_setting->value("Node/count").toInt();}
+    bool setNodeCount(quint8 count);
+    quint8 getNodeAddress(int index);
+    bool setNodeAddress(int index, quint8 address);
 
 private:
     Settings();

@@ -5,7 +5,8 @@
 udp_protocol::udp_protocol(QObject *parent) :
     QObject(parent), m_udp(new QUdpSocket(parent))
 {
-    m_udp->bind(QHostAddress::Any, 1901);
+    //m_udp->bind(QHostAddress::Any, 1901);
+    m_udp->bind((QHostAddress)"192.168.0.100", 1901);
     connect(m_udp, SIGNAL(readyRead()), this, SLOT(readData()));
     connect(m_udp, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
 
@@ -35,8 +36,8 @@ void udp_protocol::readData()
             broadcastData(getSearchReturn());
         } else if (cmd_data == QByteArray::fromHex("aa 00 07 03") && datagram.size() == 11) {
             if (datagram.mid(4,6) == QByteArray::fromHex(mac_ch)) {
-                qDebug() << "receive get param";
-                broadcastData(getDeviceParam());
+                qDebug() << "get server param";
+                broadcastData(getServerParam());
             }
         } else if (cmd_data == QByteArray::fromHex("aa 00 07 06") && datagram.size() == 11) {
             if (datagram.mid(4,6) == QByteArray::fromHex(mac_ch)) {
@@ -44,11 +45,21 @@ void udp_protocol::readData()
             }
         } else if (cmd_data == QByteArray::fromHex("aa 01 2b 04") && datagram.size() == 303) {
             if (datagram.mid(4,6) == QByteArray::fromHex(mac_ch)) {
-                qDebug() << "set param";
-                setParam(datagram.right(293));
+                qDebug() << "set server param";
+                setServerParam(datagram.right(293));
                 Routine::Instance()->setServerClients();
                 Routine::Instance()->start();
 
+            }
+        } else if (cmd_data == QByteArray::fromHex("aa 00 0b 0a") && datagram.size() == 15) {
+            if (datagram.mid(4,6) == QByteArray::fromHex(mac_ch)) {
+                qDebug() << "get device param";
+                broadcastData(getDeviceParam());
+            }
+        } else if (cmd_data == QByteArray::fromHex("aa 00 67 0a") && datagram.size() == 107) {
+            if (datagram.mid(4,6) == QByteArray::fromHex(mac_ch)) {
+                qDebug() << "set device param";
+               setDeviceParam(datagram.right(97));
             }
         }
 
@@ -60,7 +71,7 @@ void udp_protocol::error(QAbstractSocket::SocketError errorCode)
     qDebug() << errorCode << m_udp->errorString();;
 }
 
-void udp_protocol::setParam(QByteArray data)
+void udp_protocol::setServerParam(QByteArray data)
 {
     Settings *setting = Settings::Instance();
     QDataStream stream(&data, QIODevice::ReadOnly);
@@ -94,6 +105,36 @@ void udp_protocol::setParam(QByteArray data)
 
 }
 
+void udp_protocol::setDeviceParam(QByteArray data)
+{
+    QString idstr = data.mid(6,1).toHex()
+                    + data.mid(5,1).toHex()
+                    + data.mid(4,1).toHex()
+                    + data.mid(3,1).toHex();
+
+    qDebug() << data.toHex() << idstr;
+    Settings *setting = Settings::Instance();
+//    bool ok;
+    int id = idstr.toInt();
+
+    quint8 node_count;
+    quint8 node_address[8];
+    QDataStream stream(&data, QIODevice::ReadOnly);
+//    stream.setByteOrder(QDataStream::LittleEndian);
+    stream.skipRawData(3);
+    stream.skipRawData(4);
+    stream.skipRawData(14);
+    stream >> node_count;
+    for (int i=0; i<8; i++) {
+        stream >> node_address[i];
+    }
+    setting->setDeviceId(id);
+    setting->setNodeCount(node_count);
+    for (int i=0; i<8; i++) {
+        setting->setNodeAddress(i+1, node_address[i]);
+    }
+}
+
 QByteArray udp_protocol::getSearchReturn()
 {
     Settings *setting = Settings::Instance();
@@ -119,7 +160,7 @@ QByteArray udp_protocol::getSearchReturn()
 
 }
 
-QByteArray udp_protocol::getDeviceParam()
+QByteArray udp_protocol::getServerParam()
 {
     Settings *setting = Settings::Instance();
 
@@ -167,7 +208,49 @@ QByteArray udp_protocol::getDeviceParam()
         .append(QByteArray::fromHex("ff ff ff ff ff ff"))
         .append(QByteArray::fromHex("08"))  //mac connection
         .append(host_dataarray)
-        .append(QByteArray::fromHex("46"));
+            .append(QByteArray::fromHex("46"));
+}
+
+QByteArray udp_protocol::getDeviceParam()
+{
+    //return QByteArray::fromHex("5500600b 000eead49d10 7e10 08 94310110 03003c000500 01 c0120000080001 02150b030405060708 e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e703000090c84b");
+    Settings *setting = Settings::Instance();
+
+    QByteArray mac_data = setting->getMAC().toLatin1();
+    const char *mac_ch = mac_data.constData();
+    QByteArray id_data = QByteArray::number(setting->getDeviceId()).leftJustified(8, '0', true);
+    QByteArray id_data_rev = id_data.mid(6,2)
+            .append(id_data.mid(4, 2))
+            .append(id_data.mid(2, 2))
+            .append((id_data.mid(0,2)));
+    const char *id_ch = id_data_rev.constData();
+    //qDebug() << id_data << id_data_rev << id_ch;
+    QByteArray node_data = QByteArray::fromHex("03 01 02 03 04 05 06 07 08");
+    QDataStream stream(&node_data, QIODevice::ReadWrite);
+    quint8 nodecount = setting->getNodeCount();
+    stream << nodecount;
+    for (int i = 0; i < nodecount; i++) {
+        stream << setting->getNodeAddress(i + 1);
+    }
+    return QByteArray::fromHex("55 00 60 0b")
+            .append(QByteArray::fromHex(mac_ch))
+            .append(QByteArray::fromHex("7e 10"))
+            .append(QByteArray::fromHex("08"))
+            .append(QByteArray::fromHex(id_ch))
+            .append(QByteArray::fromHex("03 00 3c 00 05 00"))
+            .append(QByteArray::fromHex("01"))
+            .append(QByteArray::fromHex("c0 12 00 00 08 00 01"))
+            .append(node_data)
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("e7 03 00 00 e7 03 00 00"))
+            .append(QByteArray::fromHex("83 2d a4"))
+            ;
 }
 
 void udp_protocol::broadcastData(QByteArray data)

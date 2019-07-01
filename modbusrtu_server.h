@@ -21,7 +21,7 @@ public:
     bool addNodeAddress(int index, int address);
     void setNodeValue(int index, Modbus_Node node);
     void setNodeCount(int count);
-//    QVector<Modbus_Node> getNodeList(void) {return m_nodelist;}
+    int getNodeCount(void) {return m_nodelist.count();}
     Modbus_Node getNode(int index);
     void setRTU(QString com = "COM3", int baud = 4800);
 

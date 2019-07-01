@@ -10,7 +10,7 @@ QT += network
 QT       -= gui
 
 TARGET = LanConnector
-#CONFIG   += console
+CONFIG   += console
 CONFIG   -= app_bundle
 
 TEMPLATE = app

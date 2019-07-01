@@ -67,7 +67,7 @@ bool Settings::setServerCount(int count)
     return true;
 }
 
-bool Settings::setNodeCount(int count)
+bool Settings::setNodeCount(quint8 count)
 {
     if (count > 8 || count < 0) {
         return false;
@@ -76,7 +76,7 @@ bool Settings::setNodeCount(int count)
     return true;
 }
 
-int Settings::getNodeAddress(int index)
+quint8 Settings::getNodeAddress(int index)
 {
     int address = 0;
     m_setting->beginGroup("Node");
@@ -89,7 +89,7 @@ int Settings::getNodeAddress(int index)
     return address;
 }
 
-bool Settings::setNodeAddress(int index, int address)
+bool Settings::setNodeAddress(int index, quint8 address)
 {
     if (index > 8 || index < 1) {
         return false;
