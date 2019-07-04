@@ -1,61 +1,87 @@
 #include "settings.h"
 
 
-Settings* Settings::m_instance = 0;
+Settings* Settings::instance_ = 0;
 Settings* Settings::Instance()
 {
-    if (!m_instance) {
-        m_instance = new Settings();
+    if (!instance_) {
+        instance_ = new Settings();
     }
-    return m_instance;
+    return instance_;
 }
 
 QString Settings::getMAC()
 {
-    return m_setting->value("Device/mac").toString();
+    return setting_->value("Device/mac").toString();
 }
 
 void Settings::setMAC(QString mac)
 {
-    m_setting->setValue("Device/mac", mac);
+    setting_->setValue("Device/mac", mac);
     //to do
 }
 
 QString Settings::getIP()
 {
-    return m_setting->value("Device/ip").toString();
+    return setting_->value("Device/ip").toString();
 }
 
 void Settings::setIP(QString ip)
 {
-    m_setting->setValue("Device/ip", ip);
+    setting_->setValue("Device/ip", ip);
     //to do
 }
 
 QString Settings::getMask()
 {
-    return m_setting->value("Device/mask").toString();
+    return setting_->value("Device/mask").toString();
 }
 
 void Settings::setMask(QString ip)
 {
-    m_setting->setValue("Device/mask", ip);
+    setting_->setValue("Device/mask", ip);
     //to do
 }
 QString Settings::getGate()
 {
-    return m_setting->value("Device/gate").toString();
+    return setting_->value("Device/gate").toString();
 }
 
 void Settings::setGate(QString ip)
 {
-    m_setting->setValue("Device/gate", ip);
+    setting_->setValue("Device/gate", ip);
     //to do
 }
 
 QString Settings::getDeviceVersion()
 {
-    return m_setting->value("Device/version").toString();
+    return setting_->value("Device/version").toString();
+}
+
+HostPortMap Settings::getServerParam() const
+{
+    HostPortMap map;
+    for(int i = 0; i < getServerCount(); i++) {
+        QString host = setting_->value("Server/host" + QString::number(i + 1), "").toString();
+        quint16 port = setting_->value("Server/port" + QString::number(i + 1), 0).toInt();
+        map.insert(i + 1, HostPort(host, port));
+    }
+    return map;
+}
+
+void Settings::setServerParam(const HostPortMap &map)
+{
+    QMapIterator<int, HostPort> i(map);
+    while (i.hasNext()) {
+        i.next();
+        int index = i.key();
+        HostPort host_port = i.value();
+        if (index > 8 || index < 1) {
+            continue;
+        }
+        setting_->setValue("Server/host"+ QString::number(index), host_port.getHost());
+        setting_->setValue("Server/port" + QString::number(index), host_port.getPort());
+    }
 }
 
 bool Settings::setServerCount(int count)
@@ -63,29 +89,29 @@ bool Settings::setServerCount(int count)
     if (count > 8 || count < 1) {
         return false;
     }
-    m_setting->setValue("Server/count", count);
+    setting_->setValue("Server/count", count);
     return true;
 }
 
 bool Settings::setNodeCount(quint8 count)
 {
-    if (count > 8 || count < 0) {
+    if (count > 8) {
         return false;
     }
-    m_setting->setValue("Node/count", count);
+    setting_->setValue("Node/count", count);
     return true;
 }
 
 quint8 Settings::getNodeAddress(int index)
 {
     int address = 0;
-    m_setting->beginGroup("Node");
+    setting_->beginGroup("Node");
 
-    if (m_setting->contains("address" + QString::number(index))
+    if (setting_->contains("address" + QString::number(index))
     ) {
-        address = m_setting->value("address" + QString::number(index)).toInt();
+        address = setting_->value("address" + QString::number(index)).toInt();
     }
-    m_setting->endGroup();
+    setting_->endGroup();
     return address;
 }
 
@@ -94,58 +120,32 @@ bool Settings::setNodeAddress(int index, quint8 address)
     if (index > 8 || index < 1) {
         return false;
     }
-    m_setting->beginGroup("Node");
-    m_setting->setValue("address"+ QString::number(index), address);
-    m_setting->endGroup();
-    return true;
-}
-
-void Settings::getServer(int index, QString &host, quint16 &port)
-{
-    host = "";
-    port = 0;
-    m_setting->beginGroup("Server");
-
-    if (m_setting->contains("host" + QString::number(index))
-        && m_setting->contains("port" + QString::number(index))
-    ) {
-        host = m_setting->value("host" + QString::number(index)).toString();
-        port = m_setting->value("port" + QString::number(index)).toInt();
-    }
-    m_setting->endGroup();
-}
-
-bool Settings::setServer(int index, QString host, quint16 port)
-{
-    if (index > 8 || index < 1) {
-        return false;
-    }
-    m_setting->beginGroup("Server");
-    m_setting->setValue("host"+ QString::number(index), host);
-    m_setting->setValue("port" + QString::number(index), port);
-    m_setting->endGroup();
+    setting_->beginGroup("Node");
+    setting_->setValue("address"+ QString::number(index), address);
+    setting_->endGroup();
     return true;
 }
 
 Settings::Settings()
 {
 
-    m_setting = new QSettings("./setting.ini", QSettings::IniFormat);
+    setting_ = new QSettings("./setting.ini", QSettings::IniFormat);
 
-    if (!m_setting->contains("Server/count")) {
+    if (!setting_->contains("Server/count")) {
+        HostPortMap map;
+        map.insert(1, HostPort("127.0.0.1", 2404));
+        map.insert(2, HostPort("", 0));
+        map.insert(3, HostPort("", 0));
+        map.insert(4, HostPort("", 0));
+        map.insert(5, HostPort("", 0));
+        map.insert(6, HostPort("", 0));
+        map.insert(7, HostPort("", 0));
+        map.insert(8, HostPort("", 0));
+        setServerParam(map);
         setServerCount(1);
-        setServer(1, "127.0.0.1", 2404);
-        setServer(2, "", 0);
-        setServer(3, "", 0);
-        setServer(4, "", 0);
-        setServer(5, "", 0);
-        setServer(6, "", 0);
-        setServer(7, "", 0);
-        setServer(8, "", 0);
-
     }
 
-    if (!m_setting->contains("Device/id")) {
+    if (!setting_->contains("Device/id")) {
         setDeviceId(0);
         setMAC("00 00 00 00 00 00");
         setIPType(Settings::STATIC);
@@ -155,10 +155,10 @@ Settings::Settings()
         setDeviceName("MY-DEVICE");
         setCOM("COM3");
         setBaud(4800);
-        m_setting->setValue("Device/version", "79 1f");
+        setting_->setValue("Device/version", "79 1f");
     }
 
-    if (!m_setting->contains("Node/count")) {
+    if (!setting_->contains("Node/count")) {
         setNodeCount(0);
     }
 

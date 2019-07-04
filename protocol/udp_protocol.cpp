@@ -1,6 +1,6 @@
 #include "udp_protocol.h"
 #include "settings.h"
-#include "routine.h"
+#include "main_task.h"
 
 udp_protocol::udp_protocol(QObject *parent) :
     QObject(parent), m_udp(new QUdpSocket(parent))
@@ -47,8 +47,8 @@ void udp_protocol::readData()
             if (datagram.mid(4,6) == QByteArray::fromHex(mac_ch)) {
                 qDebug() << "set server param";
                 setServerParam(datagram.right(293));
-                Routine::Instance()->setServerClients();
-                Routine::Instance()->start();
+                MainTask::Instance()->ResetTcpClients();
+                MainTask::Instance()->SetStartFlag(true);
 
             }
         } else if (cmd_data == QByteArray::fromHex("aa 00 0b 0a") && datagram.size() == 15) {
@@ -84,24 +84,28 @@ void udp_protocol::setServerParam(QByteArray data)
     stream  >> iptype >> ip >> gate >> mask;
     stream.skipRawData(6);
     stream >> server_count;
-    quint16 port[8];
-    QString host[8];
+    HostPortMap host_port_map;
+
     for (int i=0; i < 8; i++) {
         stream.skipRawData(2);
-        stream >> port[i];
-        char str[30];
-        stream.readRawData(str, 30);
-        host[i].append(str);
+        quint16 port;
+        stream >> port;
+        char host[30];
+        stream.readRawData(host, 30);
+        host_port_map.insert(i+1, HostPort(host, port));
     }
 
     setting->setIPType(iptype == 0 ? Settings::DYNAMIC : Settings::STATIC);
     setting->setIP(QHostAddress(ip).toString());
     setting->setGate(QHostAddress(gate).toString());
     setting->setMask(QHostAddress(mask).toString());
+    setting->setServerParam(host_port_map);
     setting->setServerCount(server_count);
+    /*
     for (int i=0; i < 8; i++) {
-        setting->setServer(i+1, host[i], port[i]);
+        setting->setHostPort(i+1, HostPort(host[i], port[i]));
     }
+    */
 
 }
 
@@ -182,11 +186,15 @@ QByteArray udp_protocol::getServerParam()
     gate_stream.setByteOrder(QDataStream::LittleEndian);
     gate_stream << ((QHostAddress)setting->getGate()).toIPv4Address();
 
-    QByteArray host_dataarray;
+    QByteArray host_data_array;
+    HostPortMap host_port_map = setting->getServerParam();
     for (int i = 1; i <= 8; i++) {
         quint16 port = 0;
         QString host = "";
-        setting->getServer(i, host, port);
+        if (host_port_map.contains(i)) {
+            port = host_port_map.value(i).getPort();
+            host = host_port_map.value(i).getHost();
+        }
         QByteArray host_data;
         if (!host.isEmpty() && port > 0 && i <= setting->getServerCount()) {
 
@@ -197,8 +205,9 @@ QByteArray udp_protocol::getServerParam()
         } else {
             host_data.append(host.leftJustified(34, 0, true));
         }
-        host_dataarray.append(host_data);
+        host_data_array.append(host_data);
     }
+
     return QByteArray::fromHex("55 01 2b 03")
         .append(QByteArray::fromHex(mac_ch))
         .append(setting->getIPType() == Settings::DYNAMIC ? QByteArray::fromHex("08") : QByteArray::fromHex("80"))
@@ -207,8 +216,8 @@ QByteArray udp_protocol::getServerParam()
         .append(mask_data)
         .append(QByteArray::fromHex("ff ff ff ff ff ff"))
         .append(QByteArray::fromHex("08"))  //mac connection
-        .append(host_dataarray)
-            .append(QByteArray::fromHex("46"));
+        .append(host_data_array)
+        .append(QByteArray::fromHex("46"));
 }
 
 QByteArray udp_protocol::getDeviceParam()

@@ -2,31 +2,31 @@
 #include <QDebug>
 
 TcpClient::TcpClient(QObject *parent) :
-    QObject(parent), p_socket(new QTcpSocket(parent))
+    QObject(parent), socket_(new QTcpSocket(parent))
 {
-    connect(p_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
+    connect(socket_, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
 }
 
 
 void TcpClient::connectToHost(void)
 {
-    p_socket->connectToHost(m_host, m_port);
+    socket_->connectToHost(host_port_.getHost(), host_port_.getPort());
 }
 
 void TcpClient::stopConnect()
 {
-    p_socket->disconnectFromHost();
+    socket_->disconnectFromHost();
 }
 
 bool TcpClient::isConnected()
 {
-    return p_socket->state() == QAbstractSocket::ConnectedState;
+    return socket_->state() == QAbstractSocket::ConnectedState;
 }
 
 bool TcpClient::sendData(QByteArray data)
 {
-    if (p_socket->isValid()) {
-        p_socket->write(data);
+    if (socket_->isValid()) {
+        socket_->write(data);
         return true;
     }
     return false;
@@ -34,6 +34,29 @@ bool TcpClient::sendData(QByteArray data)
 
 void TcpClient::error(QAbstractSocket::SocketError errorNum)
 {
-    qDebug()<< errorNum << p_socket->errorString();
-    emit hasError(errorNum, p_socket->errorString());
+    qDebug()<< errorNum << socket_->errorString();
+    emit hasError(errorNum, socket_->errorString());
+}
+
+
+void InitTcpClientMap(TcpClientMap &client_map, const HostPortMap &host_port_map)
+{
+    client_map.clear();
+    QMapIterator<int, HostPort> i(host_port_map);
+    while (i.hasNext()) {
+        i.next();
+        TcpClient *client = new TcpClient();
+        client_map.insert(i.key(), client);
+        client->setHostPort(i.value());
+        client->connectToHost();
+    }
+}
+
+
+void ReleaseTcpClientMap(TcpClientMap &client_map)
+{
+    foreach (TcpClient* client, client_map) {
+        client->stopConnect();
+        client->deleteLater();
+    }
 }
