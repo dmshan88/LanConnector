@@ -15,7 +15,7 @@ void ModbusCollector::SetSerialParam(const char *com, int baud)
     is_busy = false;
 }
 
-bool ModbusCollector::CollectNode(int address, ModbusNode &node)
+bool ModbusCollector::CollectNode(const ModbusAddress &address, ModbusNode &node)
 {
     if (!is_ok) {
         return false;
@@ -31,7 +31,6 @@ bool ModbusCollector::CollectNode(int address, ModbusNode &node)
     quint16 value[2] = {0,0};
     int ret = modbus_read_registers(ctx, 0, 2, value);
     node.address = address;
-//    node.is_timeout = false;
     node.value1 = value[0];
     node.value2 = value[1];
     is_busy = false;

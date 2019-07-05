@@ -2,7 +2,7 @@
 #define SETTINGS_H
 #include <QSettings>
 #include "host_port.h"
-
+#include "modbus_node.h"
 class Settings
 {
 public:
@@ -28,21 +28,18 @@ public:
     void setDeviceName(QString name){return setting_->setValue("Device/name", name);}
     QString getDeviceVersion(void);
 
-
-    HostPortMap getServerParam(void) const;
-    void setServerParam(const HostPortMap &map);
     int getServerCount(void) const {return setting_->value("Server/count").toInt();}
     bool setServerCount(int count);
+    HostPortMap getServerParam(void) const;
+    void setServerParam(const HostPortMap &map);
 
-
-    quint8 getNodeCount(void) {return setting_->value("Node/count").toInt();}
+    quint8 getNodeCount(void) const {return setting_->value("Node/count").toInt();}
     bool setNodeCount(quint8 count);
-    quint8 getNodeAddress(int index);
-    bool setNodeAddress(int index, quint8 address);
+    ModbusAddressVector getNodeAddressVector(void) const;
+    void setNodeAddressVector(const ModbusAddressVector &vector);
 
 private:
     Settings();
-
     static Settings *instance_;
     QSettings *setting_;
 };

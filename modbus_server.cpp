@@ -17,22 +17,12 @@ ModbusServer::ModbusServer()
     collector_ = 0;
 }
 
-void ModbusServer::SetNodeChannels(int *address_array, int count)
-{
-    node_channels_.resize(count);
-
-    for (int i = 0; i < count; i++) {
-        node_channels_[i] = node_channels_.contains(address_array[i]) ? 0 : address_array[i];
-    }
-    collected_nodes_.clear();
-}
-
 void ModbusServer::CollectNodeAlternate()
 {
     static int last_index = -1;
     if (!GetNodeChannelCount() || !collector_)
         return;
-    int address = 0;
+    ModbusAddress address = 0;
     int current_index = last_index;
     do {
         current_index++;
@@ -46,10 +36,7 @@ void ModbusServer::CollectNodeAlternate()
     } while (address == 0);
 
     ModbusNode node;
-    qDebug() << "node_channels_:" << node_channels_ << current_index << last_index;
-    qDebug() << "ModbusServer::CollectNodeAlternate()" << address;
     if (collector_->CollectNode(address, node)) {
-        qDebug() << "ModbusServer::CollectNodeAlternate() collect ok";
         collected_nodes_.insert(current_index + 1, node);
     }
     last_index = current_index;

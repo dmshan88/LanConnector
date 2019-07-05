@@ -8,16 +8,13 @@ MainTimer::MainTimer(QObject *parent) :
 {
     SetInterval(kDefaultInterval);
     connect(timer_, SIGNAL(timeout()), this, SLOT(SlotTimeout()));
-
 }
 
 void MainTimer::SlotTimeout()
 {
-    qDebug() << "timeout()";
     static int counter = 0;
 
     ModbusServer::Instance()->CollectNodeAlternate();
-
     if (counter == 10) {
         MainTask::Instance()->SendRealTimeData();
     }

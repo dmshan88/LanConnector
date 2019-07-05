@@ -11,7 +11,7 @@ public:
     static ModbusServer *Instance();
 
     int GetNodeChannelCount(void) const {return node_channels_.count();}
-    void SetNodeChannels(int *address_array, int count);
+    void SetNodeChannels(const ModbusAddressVector &vector) {node_channels_ = vector;}
 
     void SetCollector(ModbusCollector *collector) {collector_ = collector;}
 
@@ -23,7 +23,7 @@ private:
     ModbusServer();
     static ModbusServer *instance_;
 
-    QVector<int> node_channels_;
+    ModbusAddressVector node_channels_;
     ModbusCollector *collector_;
     ModbusNodeMap collected_nodes_;
 

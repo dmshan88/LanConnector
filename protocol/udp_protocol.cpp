@@ -5,8 +5,8 @@
 udp_protocol::udp_protocol(QObject *parent) :
     QObject(parent), m_udp(new QUdpSocket(parent))
 {
-    //m_udp->bind(QHostAddress::Any, 1901);
-    m_udp->bind((QHostAddress)"192.168.0.100", 1901);
+    m_udp->bind(QHostAddress::Any, 1901);
+//    m_udp->bind((QHostAddress)"192.168.0.100", 1901);
     connect(m_udp, SIGNAL(readyRead()), this, SLOT(readData()));
     connect(m_udp, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
 
@@ -26,7 +26,7 @@ void udp_protocol::readData()
         if (sender == QHostAddress(Settings::Instance()->getIP())) {
             continue;
         }
-        qDebug() << "receive datagram" <<  sender << senderPort << datagram.toHex();
+//        qDebug() << "receive datagram" <<  sender << senderPort << datagram.toHex();
 
         QByteArray mac_data = Settings::Instance()->getMAC().toLatin1();
         const char *mac_ch = mac_data.constData();
@@ -49,7 +49,6 @@ void udp_protocol::readData()
                 setServerParam(datagram.right(293));
                 MainTask::Instance()->ResetTcpClients();
                 MainTask::Instance()->SetStartFlag(true);
-
             }
         } else if (cmd_data == QByteArray::fromHex("aa 00 0b 0a") && datagram.size() == 15) {
             if (datagram.mid(4,6) == QByteArray::fromHex(mac_ch)) {
@@ -62,7 +61,6 @@ void udp_protocol::readData()
                setDeviceParam(datagram.right(97));
             }
         }
-
     }
 }
 
@@ -101,11 +99,6 @@ void udp_protocol::setServerParam(QByteArray data)
     setting->setMask(QHostAddress(mask).toString());
     setting->setServerParam(host_port_map);
     setting->setServerCount(server_count);
-    /*
-    for (int i=0; i < 8; i++) {
-        setting->setHostPort(i+1, HostPort(host[i], port[i]));
-    }
-    */
 
 }
 
@@ -118,11 +111,9 @@ void udp_protocol::setDeviceParam(QByteArray data)
 
     qDebug() << data.toHex() << idstr;
     Settings *setting = Settings::Instance();
-//    bool ok;
     int id = idstr.toInt();
-
     quint8 node_count;
-    quint8 node_address[8];
+    ModbusAddressVector address_vector;
     QDataStream stream(&data, QIODevice::ReadOnly);
 //    stream.setByteOrder(QDataStream::LittleEndian);
     stream.skipRawData(3);
@@ -130,13 +121,14 @@ void udp_protocol::setDeviceParam(QByteArray data)
     stream.skipRawData(14);
     stream >> node_count;
     for (int i=0; i<8; i++) {
-        stream >> node_address[i];
+        ModbusAddress address;
+        stream >> address;
+        address_vector.append(address);
     }
     setting->setDeviceId(id);
     setting->setNodeCount(node_count);
-    for (int i=0; i<8; i++) {
-        setting->setNodeAddress(i+1, node_address[i]);
-    }
+    setting->setNodeAddressVector(address_vector);
+    MainTask::Instance()->SetModbusNodes();
 }
 
 QByteArray udp_protocol::getSearchReturn()
@@ -222,7 +214,6 @@ QByteArray udp_protocol::getServerParam()
 
 QByteArray udp_protocol::getDeviceParam()
 {
-    //return QByteArray::fromHex("5500600b 000eead49d10 7e10 08 94310110 03003c000500 01 c0120000080001 02150b030405060708 e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e7030000e703000090c84b");
     Settings *setting = Settings::Instance();
 
     QByteArray mac_data = setting->getMAC().toLatin1();
@@ -236,11 +227,11 @@ QByteArray udp_protocol::getDeviceParam()
     //qDebug() << id_data << id_data_rev << id_ch;
     QByteArray node_data = QByteArray::fromHex("03 01 02 03 04 05 06 07 08");
     QDataStream stream(&node_data, QIODevice::ReadWrite);
-    quint8 nodecount = setting->getNodeCount();
-    stream << nodecount;
-    for (int i = 0; i < nodecount; i++) {
-        stream << setting->getNodeAddress(i + 1);
+
+    foreach (ModbusAddress modbus_address, setting->getNodeAddressVector()) {
+        stream << modbus_address;
     }
+
     return QByteArray::fromHex("55 00 60 0b")
             .append(QByteArray::fromHex(mac_ch))
             .append(QByteArray::fromHex("7e 10"))
@@ -265,5 +256,5 @@ QByteArray udp_protocol::getDeviceParam()
 void udp_protocol::broadcastData(QByteArray data)
 {
     m_udp->writeDatagram(data, QHostAddress::Broadcast, 1901);
-    qDebug() << "broadcastdata:" << data.toHex();
+//    qDebug() << "broadcastdata:" << data.toHex();
 }

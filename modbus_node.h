@@ -2,16 +2,21 @@
 #define MODBUS_NODE_H
 #include <QByteArray>
 #include <QMap>
+#include <QVector>
+
+typedef quint8 ModbusAddress;
+typedef QVector<ModbusAddress> ModbusAddressVector;
+
 class ModbusNode
 {
 public:
     ModbusNode();
-    int address;
+    ModbusAddress address;
     quint16 value1;
     quint16 value2;
 //    bool is_timeout;
 
-    QByteArray toData(quint8 index) const;
+    QByteArray toData(const ModbusAddress &index) const;
 
 };
 typedef QMap<int, ModbusNode> ModbusNodeMap;

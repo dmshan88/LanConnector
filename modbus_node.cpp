@@ -5,7 +5,7 @@ ModbusNode::ModbusNode()
 {
 }
 
-QByteArray ModbusNode::toData(quint8 index) const
+QByteArray ModbusNode::toData(const ModbusAddress &index) const
 {
     QByteArray data;
     QDataStream stream(&data, QIODevice::ReadWrite);

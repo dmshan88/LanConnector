@@ -10,7 +10,7 @@ public:
 
     void SetSerialParam(const char* com, int baud = 4800);
 
-    bool CollectNode(int address, ModbusNode &node);
+    bool CollectNode(const ModbusAddress &address, ModbusNode &node);
 private:
 
     modbus_t *ctx;

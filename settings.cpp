@@ -102,33 +102,27 @@ bool Settings::setNodeCount(quint8 count)
     return true;
 }
 
-quint8 Settings::getNodeAddress(int index)
+ModbusAddressVector Settings::getNodeAddressVector() const
 {
-    int address = 0;
-    setting_->beginGroup("Node");
-
-    if (setting_->contains("address" + QString::number(index))
-    ) {
-        address = setting_->value("address" + QString::number(index)).toInt();
+    ModbusAddressVector vector;
+    for (int i = 0; i < getNodeCount(); i++) {
+        ModbusAddress address = setting_->value("Node/address" + QString::number(i + 1), 0).toInt();
+        vector.append(address);
     }
-    setting_->endGroup();
-    return address;
+    return vector;
 }
 
-bool Settings::setNodeAddress(int index, quint8 address)
+void Settings::setNodeAddressVector(const ModbusAddressVector &vector)
 {
-    if (index > 8 || index < 1) {
-        return false;
+    for (int i = 0; i< vector.size(); i++) {
+        if (i < 8) {
+            setting_->setValue("Node/address"+ QString::number(i + 1), vector.at(i));
+        }
     }
-    setting_->beginGroup("Node");
-    setting_->setValue("address"+ QString::number(index), address);
-    setting_->endGroup();
-    return true;
 }
 
 Settings::Settings()
 {
-
     setting_ = new QSettings("./setting.ini", QSettings::IniFormat);
 
     if (!setting_->contains("Server/count")) {

@@ -26,7 +26,6 @@ SOURCES += main.cpp \
     modbus_node.cpp \
     modbus_server.cpp \
     modbus_collector.cpp \
-    host_port.cpp \
     main_task.cpp \
     main_timer.cpp
 

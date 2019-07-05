@@ -7,7 +7,6 @@ TcpClient::TcpClient(QObject *parent) :
     connect(socket_, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
 }
 
-
 void TcpClient::connectToHost(void)
 {
     socket_->connectToHost(host_port_.getHost(), host_port_.getPort());
@@ -51,7 +50,6 @@ void InitTcpClientMap(TcpClientMap &client_map, const HostPortMap &host_port_map
         client->connectToHost();
     }
 }
-
 
 void ReleaseTcpClientMap(TcpClientMap &client_map)
 {
